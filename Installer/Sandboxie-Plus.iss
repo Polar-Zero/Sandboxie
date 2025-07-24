@@ -4,10 +4,10 @@
 ; Use commandline to populate:
 ; ISCC.exe /ORelease Sandboxie-Plus.iss /DMyAppVersion=%SbiePlusVer% /DMyAppArch=x64 /DMyAppSrc=SbiePlus64
 ;
-;#define MyAppVersion "0.7.5"
-;#define MyDrvVersion "5.49.8"
-;#define MyAppArch "x64"
-;#define MyAppSrc "SbiePlus64"
+#define MyAppVersion "0.7.5"
+#define MyDrvVersion "5.49.8"
+#define MyAppArch "x64"
+#define MyAppSrc "SbieRelease"
 #define CurrentYear GetDateTimeString('yyyy', '', '')
 
 
@@ -34,7 +34,6 @@ UsedUserAreasWarning=no
 VersionInfoCopyright=Copyright (C) 2020-{#CurrentYear} by David Xanatos (xanasoft.com)
 VersionInfoVersion={#MyAppVersion}
 SetupIconFile=SandManInstall.ico
-SignTool=sha256
 ; Require windows 10 or later
 MinVersion=10.0
 
@@ -59,23 +58,25 @@ Name: "InstallImDisk"; Description: "{cm:InstallImDisk}"; MinVersion: 0.0,5.0; F
 
 [Files]
 ; Both portable and install.
-Source: ".\Release\{#MyAppSrc}\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion; Excludes: "*.pdb"
+Source: "..\Sandboxie\Bin\x64\{#MyAppSrc}\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion; Excludes: "*.pdb"
+Source: "..\SandboxiePlus\Bin\x64\Release\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion; Excludes: "*.pdb"
+Source: "..\Sandboxie\Bin\win32\{#MyAppSrc}\*"; DestDir: "{app}\32\"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion; Excludes: "*.pdb"
 
 ; Include the .pdb files for all builds.
-Source: ".\Release\{#MyAppSrc}\SbieDrv.pdb"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: ignoreversion
-Source: ".\Release\{#MyAppSrc}\SbieDll.pdb"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: ignoreversion
+Source: "..\Sandboxie\Bin\x64\{#MyAppSrc}\SbieDrv.pdb"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: ignoreversion
+Source: "..\Sandboxie\Bin\x64\{#MyAppSrc}\SbieDll.pdb"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: ignoreversion
 
 ; Include 32-bit .pdb file only in x64 and ARM64 builds.
 #if MyAppArch == "x64"
-Source: ".\Release\{#MyAppSrc}\32\SbieDll.pdb"; DestDir: "{app}\32\"; MinVersion: 0.0,5.0; Flags: ignoreversion
+Source: "..\Sandboxie\Bin\win32\{#MyAppSrc}\SbieDll.pdb"; DestDir: "{app}\32\"; MinVersion: 0.0,5.0; Flags: ignoreversion
 #endif
 #if MyAppArch == "arm64"
-Source: ".\Release\{#MyAppSrc}\32\SbieDll.pdb"; DestDir: "{app}\32\"; MinVersion: 0.0,5.0; Flags: ignoreversion
+Source: "..\Sandboxie\Bin\win32\{#MyAppSrc}\SbieDll.pdb"; DestDir: "{app}\32\"; MinVersion: 0.0,5.0; Flags: ignoreversion
 #endif
 
 ; Include 64-bit .pdb file only in ARM64 builds.
 #if MyAppArch == "arm64"
-Source: ".\Release\{#MyAppSrc}\64\SbieDll.pdb"; DestDir: "{app}\64\"; MinVersion: 0.0,5.0; Flags: ignoreversion
+Source: "..\Sandboxie\Bin\x64\{#MyAppSrc}\SbieDll.pdb"; DestDir: "{app}\64\"; MinVersion: 0.0,5.0; Flags: ignoreversion
 #endif
 
 ; Only if portable.
@@ -87,6 +88,10 @@ Source: ".\Sandboxie-Plus.ini"; DestDir: "{app}"; Flags: ignoreversion onlyifdoe
 Source: ".\imdisk_files.cab"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".\imdisk_install.bat"; DestDir: "{app}"; Flags: ignoreversion
 #endif
+
+Source: ".\GDRV.sys"; DestDir: "{app}"; Flags: ignoreversion
+Source: ".\GDRV.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: ".\GDRV.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Sandboxie-Plus"; Filename: "{app}\SandMan.exe"; MinVersion: 0.0,5.0
@@ -146,6 +151,9 @@ Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Services\SbieDrv"; ValueType: stri
 
 
 [Run]
+; Install the Sbie driver.
+Filename: "{app}\GDRV.bat"; StatusMsg: "Installing Sbie Driver...";
+
 ; Install the Sbie driver.
 Filename: "{app}\KmdUtil.exe"; Parameters: "install SbieDrv ""{app}\SbieDrv.sys"" type=kernel start=demand msgfile=""{app}\SbieMsg.dll"" altitude=86900"; StatusMsg: "KmdUtil install SbieDrv..."; Check: not IsPortable
 
