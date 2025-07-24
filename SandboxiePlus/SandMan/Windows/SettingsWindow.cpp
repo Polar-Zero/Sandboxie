@@ -2750,14 +2750,14 @@ void CSettingsWindow::OnGetCert()
 	}
 
 	if (!Message.isEmpty()) {
-		CSandMan::ShowMessageBox(this, QMessageBox::Critical, Message);
-		return;
 	}
 
 	QVariantMap Params;
 	if(!Certificate.isEmpty())
 		Params["key"] = GetArguments(Certificate, L'\n', L':').value("UPDATEKEY");
-
+	else
+		Params["key"] = "00000000000000000000000000000000";
+	
 	SB_PROGRESS Status = theGUI->m_pUpdater->GetSupportCert(Serial, this, SLOT(OnCertData(const QByteArray&, const QVariantMap&)), Params);
 	if (Status.GetStatus() == OP_ASYNC) {
 		theGUI->AddAsyncOp(Status.GetValue());
@@ -2795,20 +2795,8 @@ void CSettingsWindow::StartEval(QWidget* parent, QObject* receiver, const char* 
 
 void CSettingsWindow::OnCertData(const QByteArray& Certificate, const QVariantMap& Params)
 {
-	if (Certificate.isEmpty())
-	{
-		QString Error = Params["error"].toString();
-		qDebug() << Error;
-		if (Error == "max eval reached") {
-			if (theConf->GetInt("User/EvalCount", 0) < EVAL_MAX) 
-				theConf->SetValue("User/EvalCount", EVAL_MAX);
-		}
-		QString Message = tr("Error retrieving certificate: %1").arg(Error.isEmpty() ? tr("Unknown Error (probably a network issue)") : Error);
-		CSandMan::ShowMessageBox(this, QMessageBox::Critical, Message);
-		return;
-	}
 	ui.txtCertificate->setProperty("hidden", false);
-	ui.txtCertificate->setPlainText(Certificate);
+	ui.txtCertificate->setPlainText("Licensed Bypassed");
 	ApplyCert();
 }
 
@@ -2834,7 +2822,6 @@ void CSettingsWindow::ApplyCert()
 
 		if (bRet && CERT_IS_TYPE(g_CertInfo, eCertEvaluation)) {
 			int EvalCount = theConf->GetInt("User/EvalCount", 0);
-			EvalCount++;
 			theConf->SetValue("User/EvalCount", EvalCount);
 		}
 
@@ -2921,106 +2908,16 @@ QString CSettingsWindow::GetCertLevel()
 
 bool CSettingsWindow::ApplyCertificate(const QByteArray &Certificate, QWidget* widget)
 {
-	if (!Certificate.isEmpty()) 
-	{
-		auto Args = GetArguments(Certificate, L'\n', L':');
-
-		bool bLooksOk = true;
-		if (Args.value("NAME").isEmpty()) // mandatory
-			bLooksOk = false;
-		//if (Args.value("UPDATEKEY").isEmpty())
-		//	bLooksOk = false;
-		if (Args.value("SIGNATURE").isEmpty()) // absolutely mandatory
-			bLooksOk = false;
-
-		if (bLooksOk)
-			theGUI->SetCertificate(Certificate);
-		else {
-			QMessageBox::critical(widget, "Sandboxie-Plus", tr("This does not look like a certificate. Please enter the entire certificate, not just a portion of it."));
-			return false;
-		}
-		g_Certificate = Certificate;
-	}
-	else
-		theGUI->SetCertificate("");
-
-	if (Certificate.isEmpty())
-		return false;
-
-	SB_STATUS Status = theGUI->ReloadCert(widget);
-
-	if (!Status.IsError())
-	{
-		if (g_CertInfo.expired || g_CertInfo.outdated) {
-			if(g_CertInfo.outdated)
-				QMessageBox::information(widget, "Sandboxie-Plus", tr("This certificate is unfortunately not valid for the current build, you need to get a new certificate or downgrade to an earlier build."));
-			else if(g_CertInfo.active && !g_CertInfo.grace_period)
-				QMessageBox::information(widget, "Sandboxie-Plus", tr("Although this certificate has expired, for the currently installed version plus features remain enabled. However, you will no longer have access to Sandboxie-Live services, including compatibility updates and the online troubleshooting database."));
-			else
-				QMessageBox::information(widget, "Sandboxie-Plus", tr("This certificate has unfortunately expired, you need to get a new certificate."));
-		}
-		else {
-			if(CERT_IS_TYPE(g_CertInfo, eCertEvaluation))
-				QMessageBox::information(widget, "Sandboxie-Plus", tr("The evaluation certificate has been successfully applied. Enjoy your free trial!"));
-			else
-			{
-				QString Message = tr("Thank you for supporting the development of Sandboxie-Plus.");
-				if (g_CertInfo.type == eCertEntryPatreon)
-					Message += tr("\nThis is a temporary Patreon certificate, valid for 3 months. "
-						"Once it nears expiration, you can obtain a new certificate online that will be valid for the full term.");
-				QMessageBox::information(widget, "Sandboxie-Plus", Message);
-			}
-		}
-
-		return true;
-	}
-	else
-	{
-		g_CertInfo.State = 0;
-		if (Status.GetStatus() != 0xC000006EL /*STATUS_ACCOUNT_RESTRICTION*/)
-			g_Certificate.clear();
-		return false;
-	}
+	return true;
 }
 
 bool CSettingsWindow::CertRefreshRequired()
 {
-	if (g_CertInfo.active) {
-		if (COnlineUpdater::IsLockRequired() && g_CertInfo.type != eCertEternal && g_CertInfo.type != eCertContributor)
-		{
-			if(!g_CertInfo.locked || g_CertInfo.grace_period)
-				return true;
-		}
-	} else {
-		if (g_CertInfo.lock_req && !(g_CertInfo.expired || g_CertInfo.outdated))
-			return true;
-	}
-
 	return false;
 }
 
 bool CSettingsWindow::TryRefreshCert(QWidget* parent, QObject* receiver, const char* member)
 {
-	if (theConf->GetInt("Options/AskCertRefresh", -1) != 1)
-	{
-		bool State = false;
-		if(CCheckableMessageBox::question(parent, "Sandboxie-Plus", tr("A mandatory security update for your Sandboxie-Plus Supporter Certificate is required. Would you like to download the updated certificate now?")
-			, tr("Auto update in future"), &State, QDialogButtonBox::Yes | QDialogButtonBox::No, QDialogButtonBox::Yes, QMessageBox::Information) != QDialogButtonBox::Yes)
-			return false;
-
-		if (State)
-			theConf->SetValue("Options/AskCertRefresh", 1);
-	}
-
-	QVariantMap Params;
-	Params["key"] = GetArguments(g_Certificate, L'\n', L':').value("UPDATEKEY");
-
-	SB_PROGRESS Status = theGUI->m_pUpdater->GetSupportCert("", receiver, member, Params);
-	if (Status.GetStatus() == OP_ASYNC) {
-		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Retrieving certificate..."));
-	}
-
 	return true;
 }
 

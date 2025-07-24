@@ -112,12 +112,12 @@ SB_PROGRESS COnlineUpdater::GetUpdates(QObject* receiver, const char* member, co
 	Query.addQueryItem("debug", "1");
 #endif
 
-	QString UpdateKey = GetArguments(g_Certificate, L'\n', L':').value("UPDATEKEY");
+	//QString UpdateKey = "00000000000000000000000000000000";
 	//if (UpdateKey.isEmpty())
 	//	UpdateKey = theAPI->GetGlobalSettings()->GetText("UpdateKey"); // theConf->GetString("Options/UpdateKey");
 	//if (UpdateKey.isEmpty())
 	//	UpdateKey = "00000000000000000000000000000000";
-	Query.addQueryItem("update_key", UpdateKey);
+	//Query.addQueryItem("update_key", "00000000000000000000000000000000");
 	
 	quint64 RandID = COnlineUpdater::GetRandID();
 	quint32 Hash = theAPI->GetUserSettings()->GetName().mid(13).toInt(NULL, 16);
@@ -273,7 +273,7 @@ void CGetFileJob::Finish(QNetworkReply* pReply)
 
 SB_PROGRESS COnlineUpdater::GetSupportCert(const QString& Serial, QObject* receiver, const char* member, const QVariantMap& Params)
 {
-	QString UpdateKey = Params["key"].toString();
+	QString UpdateKey = "00000000000000000000000000000000";
 
 	QUrlQuery Query;
 
@@ -313,7 +313,7 @@ SB_PROGRESS COnlineUpdater::GetSupportCert(const QString& Serial, QObject* recei
 	QString Test = Query.toString();
 #endif
 
-	QUrl Url("https://sandboxie-plus.com/get_cert.php?");
+	QUrl Url("about:blank");
 	Url.setQuery(Query);
 
 	CUpdatesJob* pJob = new CGetCertJob(Params, this);
@@ -333,10 +333,10 @@ bool COnlineUpdater::IsLockRequired()
 		return true;
 
 	LANGID LangID = 0;
-	if ((NtQueryInstallUILanguage(&LangID) == 0) && (LangID == 0x0804))
+	if ((NtQueryInstallUILanguage(&LangID) == 0) && (LangID != 0x0412))
 		return true;
 
-	if (theGUI->m_LanguageId == 0x0804)
+	if (theGUI->m_LanguageId != 0x0412)
 		return true;
 
 	return false;
@@ -547,11 +547,11 @@ void COnlineUpdater::CheckForUpdates(bool bManual)
 	m_CheckMode = bManual ? eManual : eAuto;
 
 	QVariantMap Params;
-    SB_PROGRESS Status = GetUpdates(this, SLOT(OnUpdateData(const QVariantMap&, const QVariantMap&)), Params);
+    /*SB_PROGRESS Status = GetUpdates(this, SLOT(OnUpdateData(const QVariantMap&, const QVariantMap&)), Params);
 	if (bManual && Status.GetStatus() == OP_ASYNC) {
 		theGUI->AddAsyncOp(Status.GetValue());
 		Status.GetValue()->ShowMessage(tr("Checking for updates..."));
-	}
+	}*/
 }
 
 void COnlineUpdater::OnUpdateData(const QVariantMap& Data, const QVariantMap& Params)
@@ -1133,7 +1133,7 @@ bool COnlineUpdater::RunInstaller(bool bSilent)
 void COnlineUpdater::UpdateTemplates()
 {
 	QVariantMap Params;
-    SB_PROGRESS Status = GetUpdates(this, SLOT(OnUpdateDataTmpl(const QVariantMap&, const QVariantMap&)), Params);
+    //SB_PROGRESS Status = GetUpdates(this, SLOT(OnUpdateDataTmpl(const QVariantMap&, const QVariantMap&)), Params);
 	//if (Status.GetStatus() == OP_ASYNC) {
 	//	theGUI->AddAsyncOp(Status.GetValue());
 	//	Status.GetValue()->ShowMessage(tr("Checking for updates..."));

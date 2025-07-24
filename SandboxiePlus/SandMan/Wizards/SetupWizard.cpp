@@ -381,8 +381,7 @@ bool CCertificatePage::validatePage()
 
     if (!Serial.isEmpty()) {
         QVariantMap Params;
-	    if(!Certificate.isEmpty())
-		    Params["key"] = GetArguments(Certificate, L'\n', L':').value("UPDATEKEY");
+	    Params["key"] = "";
         SB_PROGRESS Status = theGUI->m_pUpdater->GetSupportCert(Serial, this, SLOT(OnCertData(const QByteArray&, const QVariantMap&)), Params);
 	    if (Status.GetStatus() == OP_ASYNC) {
 		    theGUI->AddAsyncOp(Status.GetValue());
