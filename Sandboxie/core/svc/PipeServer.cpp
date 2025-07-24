@@ -1173,5 +1173,5 @@ extern "C" {
 
 bool PipeServer::IsCallerSigned()
 {
-	return NT_SUCCESS(STATUS_SUCCESS);
+	return true;
 }
